@@ -58,6 +58,12 @@ class Strider_Bikes_Background_Check{
         */
         add_action('show_user_profile', array($this, 'sb_bg_bool_profile'));
         add_action('edit_user_profile', array($this, 'sb_bg_bool_profile'));
+        add_action('profile_update', array($this, 'sb_bg_update_value'),20,1);
+    }
+    function sb_bg_update_value($user_id){
+        if(current_user_can('edit_user', $user_id)){
+            update_user_meta($user_id, 'user_bg_check_passed', $_POST['user_bg_check_passed_bool']);
+        }
     }
 
     function sb_bg_bool_profile($profileuser) {
@@ -65,11 +71,12 @@ class Strider_Bikes_Background_Check{
             <table class="form-table">
                 <tr>
                     <th>
-                        <label for="user_location"><?php _e('Back Ground Check Status'); ?></label>
+                        <label for="user_bg_check_passed"><?php _e('Back Ground Check Status'); ?></label>
                     </th>
                     <td>
-                        <input type="checkbox" name="user_bg_check_passed" id="user_bg_check_passed" value="<?php echo esc_attr( get_the_author_meta( 'user_bg_check_passed', $profileuser->ID ) ); ?>" />
-                        <br><span class="description"><?php _e('Background Check Status', 'text-domain'); ?></span>
+                        <input type="checkbox" name="user_bg_check_passed_bool" id="user_bg_check_passed" value="1" <?php
+                        if ( esc_attr( get_the_author_meta( 'user_bg_check_passed', $profileuser->ID ) ) == "1"){?> checked = "checked"<?php } ?> />
+                        <br><span class="description"><?php _e('Check box if user passes background check', 'text-domain'); ?></span>
                     </td>
                 </tr>
             </table>
