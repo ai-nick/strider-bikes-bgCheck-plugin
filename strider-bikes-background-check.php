@@ -106,7 +106,7 @@ class Strider_Bikes_Background_Check{
             </tr>
             
             <tr valign="top">
-            <th scope="row">Api Base Url</th>
+            <th scope="row">BackGround Check Form Url</th>
             <td><input type="text" name="sb_bg_check_abg_api_baseurl" value="<?php echo esc_attr( get_option('sb_bg_check_abg_api_baseurl') ); ?>" /></td>
             </tr>
         </table>
@@ -120,14 +120,15 @@ class Strider_Bikes_Background_Check{
     function sb_bg_status_shortcode(){
         $cUserID = get_current_user_id();
         $userBGCheck = get_user_meta($cUserID, STRIDER_BIKES_BGCHECK_ID_KEY);
+        $bgCheckPageURL = get_option('sb_bg_check_abg_api_baseurl');
         $out = '<div class="container-fluid">';
         if (sizeof($userBGCheck[0])<1){
             $out .= '<p> You have not submitted your information for 
-            a background check yet, please visit the background check page to fill out and 
+            a background check yet, please visit the <a href="'.$bgCheckPageURL.'"> background check page </a>to fill out and 
             submit the form </p>';
         } else {
             $out .= '<p> You have already submitted your information for a background check
-            please visit the background check page to view your status</p>';
+            please visit the<a href="'.$bgCheckPageURL.'"> background check page </a> to view your status</p>';
         }
         return $out;
     }
@@ -139,6 +140,7 @@ class Strider_Bikes_Background_Check{
             die ( __('you have been DENIED', 'learnpress'));
         }
         $orderID = $_POST['id'];
+        //$canID = get_user_meta(get_current_user_id(), STRIDER_BIKES_BGCHECK_ID_KEY);
         $url = 'https://api.accuratebackground.com/v3/order/'.$orderID;
         $key = get_option('sb_bg_check_abg_api_key');
         $secret = get_option('sb_bg_check_abg_api_secret');
@@ -171,11 +173,11 @@ class Strider_Bikes_Background_Check{
         $datada = array(
             'candidateId' => $bgID,
             'packageType' => 'PKG_BASIC',
-            'workflow' =>   'INTERACTIVE',
+            'workflow' =>   'EXPRESS',
             'jobLocation' => array(
-            'city' => get_user_meta($userID, 'sb_bg_check_city'),
-            'region' => get_user_meta($userID, 'sb_bg_check_region'),
-            'country' => 'US'
+            'city' => get_user_meta($userID, 'sb_bg_check_city')[0],
+            'region' => get_user_meta($userID, 'sb_bg_check_region')[0],
+            'country' => get_user_meta($userID, 'sb_bg_check_country')[0], 
             )
         );
         $data_string = json_encode($datada);

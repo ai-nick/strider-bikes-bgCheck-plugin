@@ -16,7 +16,7 @@
         var cAddress = $('#bg_address').val();
         var uCity = $('#bg_city').val();
         var uRegion = $('#bg_region').val();
-        var uCountry = $('#bg_country').val();
+        var uCountry = $('#bg_country option:selected').val();
         var ajaxurl = btn.attr('data-url');
         var data =  {action: 'check_update_userInfo', nonce: nOnce,
                 dateOfBirth: bDate,
@@ -39,7 +39,7 @@
           async: false,
           data: data,
           success: function(re){
-            //console.log(re['id']);
+            console.log(re);
             var data2 = {action: 'check_make_order',id:re.id};
             JSON.stringify(data2);
             $.ajax({
@@ -49,7 +49,8 @@
                 async: false,
                 data: data2,
                 success: function(response){
-                  window.location.reload();
+                    console.log(response);
+                    //window.location.reload();
                 }
               });
           }
@@ -78,6 +79,7 @@
             data: data,
             success: function(re){
                 alert('Your background check status is : ' + re.status);
+                console.log(re);
             }
           });
           /*

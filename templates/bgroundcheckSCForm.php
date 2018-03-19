@@ -17,7 +17,7 @@
  $metaUser = get_userData($user);
  ?>
 
-<?php if ($userOrderID[0] > 0) : ?>
+<?php if (sizeof($userOrderID[0]) > 1) : ?>
 <div>
 <h4> You have already filled out the preliminary information for your background check, if you would like to check your status click the button below </h4>
 <button class="sb-bg-order-check" data-id="<?php echo $userOrderID[0]; ?>" data-url="<?php echo admin_url( 'admin-ajax.php' );?>"
@@ -72,7 +72,22 @@ data-nonce="<?php echo wp_create_nonce('sb_bg_check_order_status'); ?>">Check St
   <div class="form-group">
     <label class="control-label col-sm-2" for="bg_country">Country</label>
     <div class="col-sm-10">
-      <input type="text" class="form-control" id="bg_country" name="bg_country" placeholder="Enter your Country">
+      <select id="bg_country" name="bg_country">
+      <option value="AT"> Austria </option>
+      <option value="AU"> Autstralia</option>
+      <option value="CA"> Canada </option>
+      <option value="CH"> Switzerland </option>
+      <option value="DE"> Germany </option>
+      <option value="FR"> France </option>
+      <option value="GB"> UK of Great Britain</option>
+      <option value="IE"> Ireland </option>
+      <option value="IL"> Israel </option>
+      <option value="IN"> India </option>
+      <option value="IT"> Italy </option>
+      <option value="MX"> Mexico </option>
+      <option value="RU"> Russia </option>
+      <option value="US"> United States Of America </option>
+      </select>
     </div>
   </div>
   </form>
