@@ -39,7 +39,7 @@
           async: false,
           data: data,
           success: function(re){
-            console.log(re);
+            //console.log(re);
             var data2 = {action: 'check_make_order',id:re.id};
             JSON.stringify(data2);
             $.ajax({
@@ -49,8 +49,8 @@
                 async: false,
                 data: data2,
                 success: function(response){
-                    console.log(response);
-                    //window.location.reload();
+                    //console.log(response);
+                    window.location.reload();
                 }
               });
           }
@@ -79,7 +79,7 @@
             data: data,
             success: function(re){
                 alert('Your background check status is : ' + re.status);
-                console.log(re);
+                //console.log(re);
             }
           });
           /*

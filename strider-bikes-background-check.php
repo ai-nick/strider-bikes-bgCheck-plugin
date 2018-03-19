@@ -57,12 +57,14 @@ class Strider_Bikes_Background_Check{
         */
         add_action('admin_menu', array($this, 'sb_bg_check_create_menu'));
         add_action('gform_pre_submission_5', array($this, 'sb_bg_pre_gravity_form'));
+        add_action('gform_after_submission_5', array($this, 'sb_bg_check_make_order_grav_forms'));
         add_action('wp_enqueue_scripts', array($this, 'sb_bg_scripts'));
         add_action('show_user_profile', array($this, 'sb_bg_bool_profile'));
         add_action('edit_user_profile', array($this, 'sb_bg_bool_profile'));
         add_action('profile_update', array($this, 'sb_bg_update_value'),20,1);
         add_shortcode('sb_instructor_backgroundCheck_form', array($this, 'backgroundCheckFormLoader'));
         add_shortcode('sb_instructor_backgroundCheck_status', array($this, 'sb_bg_status_shortcode'));
+        add_shortcode('sb_instructor_backgroundCheck_check_status', array($this, 'sb_bg_check_status_shortcode'));
         //LP_Request_Handler::register_ajax('sb_bg_check_update_userInfo', array($this, 'sb_bg_check_update_userInfo'));
         add_action('wp_ajax_check_make_order', array($this, 'sb_bg_check_make_order'));
         add_action('wp_ajax_check_update_userInfo', array($this, 'sb_bg_check_update_userInfo'));
@@ -84,6 +86,7 @@ class Strider_Bikes_Background_Check{
         register_setting( 'sb-bg-check-settings-group', 'sb_bg_check_abg_api_key' );
         register_setting( 'sb-bg-check-settings-group', 'sb_bg_check_abg_api_secret' );
         register_setting( 'sb-bg-check-settings-group', 'sb_bg_check_abg_api_baseurl' );
+        register_setting( 'sb-bg-check-settings-group', 'sb_bg_check_abg_admin_email' );
     }
     
     function sb_bg_check_settings_page() {
@@ -109,6 +112,11 @@ class Strider_Bikes_Background_Check{
             <th scope="row">BackGround Check Form Url</th>
             <td><input type="text" name="sb_bg_check_abg_api_baseurl" value="<?php echo esc_attr( get_option('sb_bg_check_abg_api_baseurl') ); ?>" /></td>
             </tr>
+
+            <tr valign="top">
+            <th scope="row">BackGround Check OnSubmit Email</th>
+            <td><input type="text" name="sb_bg_check_abg_admin_email" value="<?php echo esc_attr( get_option('sb_bg_check_abg_admin_email') ); ?>" /></td>
+            </tr>
         </table>
         
         <?php submit_button(); ?>
@@ -116,6 +124,12 @@ class Strider_Bikes_Background_Check{
     </form>
     </div>
     <?php } 
+
+    function sb_bg_check_status_shortcode(){
+        ob_start();
+        require_once($this->_plugin_template_path.'sbbgCheckStatus.php');
+        return ob_get_clean();
+    }
 
     function sb_bg_status_shortcode(){
         $cUserID = get_current_user_id();
@@ -205,7 +219,7 @@ class Strider_Bikes_Background_Check{
 
     function sb_bg_check_update_userInfo(){
         $userID = get_current_user_id();
-        $url = 'https://api.accuratebackground.com/v3/candidate/';
+        $apiUrl = 'https://api.accuratebackground.com/v3/candidate/';
         $nonce = !empty( $_POST['nonce']) ? $_POST['nonce']: null;
         
         if(!wp_verify_nonce($nonce, 'sb_bg_check_update_userInfo')){
@@ -230,8 +244,9 @@ class Strider_Bikes_Background_Check{
         $data_string = json_encode($data);
         $key = get_option('sb_bg_check_abg_api_key');
         $secret = get_option('sb_bg_check_abg_api_secret');
+        $adminEmail = get_option('sb_bg_check_abg_admin_email');
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL,$url);
+        curl_setopt($ch, CURLOPT_URL,$apiUrl);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 20);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");  
         curl_setopt($ch, CURLOPT_POST, true);                                                                   
@@ -247,28 +262,41 @@ class Strider_Bikes_Background_Check{
         $result = curl_exec($ch);
         $result = json_decode($result);
         $canID = $result->id;
+        if($canID){
+            $to = $adminEmail;
+            $subject = 'A user has just submitted info for a background check';
+            $body = 'the user '.$data['firstName'].' '.$data['lastName'].' has just submitted their initial background
+            check form. ';
+            $body .= '<h4>Info: </h4> <table>';
+            foreach($result as $key=>$value){
+                $body .= '<tr><td>'.json_encode($key).'</td><td>'.json_encode($value).'</td></tr>';
+            }
+            $body .= '</table>';
+            $headers = array('Content-type: text/html; charset=UTF-8');
+            wp_mail($to, $subject, $body, $headers);
+        }
         update_user_meta($userID, STRIDER_BIKES_BGCHECK_ID_KEY, $canID);
         curl_close($ch);
         wp_send_json($result);
         wp_die();
     }
 
-    function sb_bg_pre_gravity_form(){
+    function sb_bg_pre_gravity_form($form){
         $userID = get_current_user_id();
-        $metaUser = get_userData($user);
+        $metaUser = get_userData($userID);
         $url = 'https://api.accuratebackground.com/v3/candidate/';
         $data = array(
-            'address' => $_POST['input_5.1'],
-            'city' => $_POST['input_5.3'],
-            'country' => $_POST['input_5.6'],
+            'address' => $_POST['input_5_1'],
+            'city' => $_POST['input_5_3'],
+            'country' => $_POST['input_6'],
             'dateOfBirth' => $_POST['input_1'],
             'email' => $metaUser->user_email,
             'firstName' => $metaUser->first_name,
             'lastName' => $metaUser->last_name,
             'phone' => $_POST['input_2'],
-            'postalCode' => $_POST['input_5.5'],
-            'region' => $_POST['input_5.4'],
-            'ssn' => $_POST['input_3']
+            'postalCode' => $_POST['input_5_5'],
+            'region' => $_POST['input_5_4'],
+            'ssn' => $_POST['input_4']
         );
         foreach($data as $key => $value){
             update_user_meta($userID, 'sb_bg_check_'.$key, $value);
@@ -295,12 +323,13 @@ class Strider_Bikes_Background_Check{
         $canID = $result->id;
         update_user_meta($userID, STRIDER_BIKES_BGCHECK_ID_KEY, $canID);
         curl_close($ch);
-        $this->sb_bg_check_make_order_grav_forms($canID);
-        wp_die();
+        //$this->sb_bg_check_make_order_grav_forms($canID);
+        //wp_die();
     }
 
-    function sb_bg_check_make_order_grav_forms($canID){
+    function sb_bg_check_make_order_grav_forms(){
         $userID = get_current_user_id();
+        $canID = get_user_meta($userID, STRIDER_BIKES_BGCHECK_ID_KEY)[0];
         $key = get_option('sb_bg_check_abg_api_key');
         $secret = get_option('sb_bg_check_abg_api_secret');
         $url = 'https://api.accuratebackground.com/v3/order/';
@@ -309,9 +338,9 @@ class Strider_Bikes_Background_Check{
             'packageType' => 'PKG_BASIC',
             'workflow' =>   'INTERACTIVE',
             'jobLocation' => array(
-            'city' => get_user_meta($userID, 'sb_bg_check_city'),
-            'region' => get_user_meta($userID, 'sb_bg_check_region'),
-            'country' => 'US'
+            'city' => get_user_meta($userID, 'sb_bg_check_city')[0],
+            'region' => get_user_meta($userID, 'sb_bg_check_region')[0],
+            'country' => get_user_meta($userID, 'sb_bg_check_country')[0]
             )
         );
         $data_string = json_encode($datada);
@@ -332,8 +361,20 @@ class Strider_Bikes_Background_Check{
         $result = curl_exec($ch);
         $result = json_decode($result);
         $orderID = $result->id;
+        $adminEmail = get_option('sb_bg_check_abg_admin_email');
+        $to = $adminEmail;
+        $subject = 'A user has just submitted info for a background check';
+        $body = 'the user '.$datada['candidateId'].' has just submitted their initial background
+        check form. ';
+        $body .= '<h4>Info: </h4> <table>';
+        foreach($result as $key=>$value){
+            $body .= '<tr><td>'.json_encode($key).'</td><td>'.json_encode($value).'</td></tr>';
+        }
+        $body .= '</table>';
+        $headers = array('Content-type: text/html; charset=UTF-8');
+        wp_mail($to, $subject, $body, $headers);
         update_user_meta(get_current_user_id(), 'sb_bg_check_canidate_order_id', $orderID);
-        wp_die();
+        //wp_die();
     }
 
     function sb_bg_scripts(){
