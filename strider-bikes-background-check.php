@@ -16,6 +16,7 @@ if (!defined('ABSPATH')) {
 if(! defined( 'STRIDER_BIKES_BGCHECK_PATH' ) ) define('STRIDER_BIKES_BGCHECK_PATH', dirname( __FILE__ ) );
 if(! defined( 'STRIDER_BIKES_BGCHECK_FILE' ) ) define('STRIDER_BIKES_BGCHECK_FILE', ( __FILE__ ) );
 if(! defined( 'STRIDER_BIKES_BGCHECK_ID_KEY' ) ) define('STRIDER_BIKES_BGCHECK_ID_KEY', 'sb_bg_check_canidate_ID' );
+if(! defined( 'STRIDER_BIKES_BGCHECK_ORDER_KEY' ) ) define('STRIDER_BIKES_BGCHECK_ORDER_KEY', 'sb_bg_check_canidate_order_id' );
 
 
 if ( !defined('ABSPATH')) {
@@ -42,13 +43,14 @@ class Strider_Bikes_Background_Check{
 
     //protected $_meta_boxes = array();
     //protected $_post_type = '';
-
+    private $_grav_id = 0;
 
 
 
     function __construct(){
         //$this->_post_type = 'lp_unlock_oncomplete_cpt';
         $this->_tab_slug = sanitize_title( 'sb-background-check' );
+        $this->_grav_id = get_option('sb_bg_check_abg_grav_ID');
         $this->_plugin_template_path = STRIDER_BIKES_BGCHECK_PATH.'/templates/';
         $this->_plugin_url  = untrailingslashit( plugins_url( '/', STRIDER_BIKES_BGCHECK_FILE ));
         /*
@@ -56,14 +58,13 @@ class Strider_Bikes_Background_Check{
         add_filter('manage_users_custom_column', array($this, 'sb_modify_background_check_row'), 10, 3);
         */
         add_action('admin_menu', array($this, 'sb_bg_check_create_menu'));
-        add_action('gform_pre_submission_5', array($this, 'sb_bg_pre_gravity_form'));
+        add_action('gform_pre_submission_'.$this->_grav_id, array($this, 'sb_bg_pre_gravity_form'));
         add_action('gform_after_submission_5', array($this, 'sb_bg_check_make_order_grav_forms'));
-        add_action('wp_enqueue_scripts', array($this, 'sb_bg_scripts'));
+        add_action('admin_enqueue_scripts', array($this, 'sb_bg_scripts'));
         add_action('show_user_profile', array($this, 'sb_bg_bool_profile'));
         add_action('edit_user_profile', array($this, 'sb_bg_bool_profile'));
         add_action('profile_update', array($this, 'sb_bg_update_value'),20,1);
         add_shortcode('sb_instructor_backgroundCheck_form', array($this, 'backgroundCheckFormLoader'));
-        add_shortcode('sb_instructor_backgroundCheck_status', array($this, 'sb_bg_status_shortcode'));
         add_shortcode('sb_instructor_backgroundCheck_check_status', array($this, 'sb_bg_check_status_shortcode'));
         //LP_Request_Handler::register_ajax('sb_bg_check_update_userInfo', array($this, 'sb_bg_check_update_userInfo'));
         add_action('wp_ajax_check_make_order', array($this, 'sb_bg_check_make_order'));
@@ -75,11 +76,28 @@ class Strider_Bikes_Background_Check{
     
         //create new top-level menu
         add_menu_page('Strider Bikes Bg Check Settings', 'Background Check Settings', 'administrator',__FILE__, array($this, 'sb_bg_check_settings_page') );
-    
+        // add canidates page to plugin menu
+        add_submenu_page(__FILE__,'Strider Bikes Bg Check Canidates', 'Background Check Candidates', 'administrator','sbbgCheckCanidates', array($this, 'sb_bg_check_candidates_admin_page'));
         //call register settings function
         add_action( 'admin_init', array($this, 'register_sb_bg_check_settings') );
     }
-    
+    // canidates admin page
+    function sb_bg_check_candidates_admin_page(){
+        $out = '<div class="wrap">';
+        $users = get_users();
+        foreach($users as $i){
+            $orderID = get_user_meta($i->ID,'sb_bg_check_canidate_order_id');
+            if($orderID[0]>0){
+                $out .= '<p>'.$i->display_name.'</p><p>'.$i->user_email.'</p>';
+                $out .= '<div><button class="sb-bg-order-check-admin" data-url="'.admin_url( 'admin-ajax.php' ).'"
+                        data-id="'.$orderID[0].'" data-nonce="'.wp_create_nonce('sb_bg_check_order_status').'"> Check Status
+                        </button></div>';
+                $out .= '<div> <a href="https://www.striderbikes.com/_education/wp-admin/user-edit.php?user_id='.$i->ID.'"><p>edit user</p></a> </div>';          
+            }
+        }
+        $out .= '</div>';
+        echo $out;
+    }
     
     function register_sb_bg_check_settings() {
         //register our settings
@@ -87,6 +105,7 @@ class Strider_Bikes_Background_Check{
         register_setting( 'sb-bg-check-settings-group', 'sb_bg_check_abg_api_secret' );
         register_setting( 'sb-bg-check-settings-group', 'sb_bg_check_abg_api_baseurl' );
         register_setting( 'sb-bg-check-settings-group', 'sb_bg_check_abg_admin_email' );
+        register_setting( 'sb-bg-check-settings-group', 'sb_bg_check_abg_grav_ID' );
     }
     
     function sb_bg_check_settings_page() {
@@ -117,6 +136,11 @@ class Strider_Bikes_Background_Check{
             <th scope="row">BackGround Check OnSubmit Email</th>
             <td><input type="text" name="sb_bg_check_abg_admin_email" value="<?php echo esc_attr( get_option('sb_bg_check_abg_admin_email') ); ?>" /></td>
             </tr>
+
+            <tr valign="top">
+            <th scope="row">BackGround Check Gravity Form ID Number</th>
+            <td><input type="number" name="sb_bg_check_abg_grav_ID" value="<?php echo esc_attr( get_option('sb_bg_check_abg_grav_ID') ); ?>" /></td>
+            </tr>
         </table>
         
         <?php submit_button(); ?>
@@ -126,32 +150,30 @@ class Strider_Bikes_Background_Check{
     <?php } 
 
     function sb_bg_check_status_shortcode(){
-        ob_start();
-        require_once($this->_plugin_template_path.'sbbgCheckStatus.php');
-        return ob_get_clean();
-    }
-
-    function sb_bg_status_shortcode(){
         $cUserID = get_current_user_id();
-        $userBGCheck = get_user_meta($cUserID, STRIDER_BIKES_BGCHECK_ID_KEY);
+        if (!$cUserID){
+            return;
+        }
+        $userBGCheck = get_user_meta($cUserID, STRIDER_BIKES_BGCHECK_ORDER_KEY);
         $bgCheckPageURL = get_option('sb_bg_check_abg_api_baseurl');
         $out = '<div class="container-fluid">';
         if (sizeof($userBGCheck[0])<1){
             $out .= '<p> You have not submitted your information for 
             a background check yet, please visit the <a href="'.$bgCheckPageURL.'"> background check page </a>to fill out and 
             submit the form </p>';
+            return $out;
         } else {
-            $out .= '<p> You have already submitted your information for a background check
-            please visit the<a href="'.$bgCheckPageURL.'"> background check page </a> to view your status</p>';
+            ob_start();
+            require_once($this->_plugin_template_path.'sbbgCheckStatus.php');
+            return ob_get_clean();
         }
-        return $out;
     }
 
     function sb_bg_check_order_status(){
         $nonce = !empty( $_POST['nonce']) ? $_POST['nonce']: null;
         
         if(!wp_verify_nonce($nonce, 'sb_bg_check_order_status')){
-            die ( __('you have been DENIED', 'learnpress'));
+            die ( __('you have been DENIED'));
         }
         $orderID = $_POST['id'];
         //$canID = get_user_meta(get_current_user_id(), STRIDER_BIKES_BGCHECK_ID_KEY);

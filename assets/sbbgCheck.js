@@ -1,3 +1,6 @@
+// js function to submit candidate data, posts to backend
+// then gets the response, posts to backend again and reloads page on completion
+
 (function($){
     //console.log('js loaded');
     $(document).on('click', '.sbbg-check-submit', function(){
@@ -58,7 +61,7 @@
     });
 
 })(jQuery);
-
+// check status button 
 (function($){
     //console.log('js loaded');
     $(document).on('click', '.sb-bg-order-check', function(){
@@ -79,6 +82,38 @@
             data: data,
             success: function(re){
                 alert('Your background check status is : ' + re.status);
+                //console.log(re);
+            }
+          });
+          /*
+        $.post(ajaxurl, data, function(response){
+            alert('Your background check status is : ' + response.status);
+        });
+        */
+    });
+
+})(jQuery);
+
+(function($){
+    //console.log('js loaded');
+    $(document).on('click', '.sb-bg-order-check-admin', function(){
+        //event.preventDefault();
+        console.log('clicked button');
+        var btn = $(this);
+        var nOnce = btn.attr('data-nonce');
+        var bID = btn.attr('data-id');
+        var ajaxurl = btn.attr('data-url');
+        var data =  {nonce: nOnce, id: bID, action: 'check_order_status'};
+        console.log(data);
+        JSON.stringify(data);
+        $.ajax({
+            type: "POST",
+            url: ajaxurl,
+            dataType: 'json',
+            async: false,
+            data: data,
+            success: function(re){
+                alert('background check status is : ' + JSON.stringify(re));
                 //console.log(re);
             }
           });
