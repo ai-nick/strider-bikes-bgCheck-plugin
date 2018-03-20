@@ -33,7 +33,7 @@
                 city: uCity,
                 region: uRegion,
                 country: uCountry};
-        console.log(data);
+        //console.log(data);
         JSON.stringify(data);
         $.ajax({
           type: "POST",
@@ -72,7 +72,7 @@
         var bID = btn.attr('data-id');
         var ajaxurl = btn.attr('data-url');
         var data =  {nonce: nOnce, id: bID, action: 'check_order_status'};
-        console.log(data);
+        //console.log(data);
         JSON.stringify(data);
         $.ajax({
             type: "POST",
@@ -104,7 +104,7 @@
         var bID = btn.attr('data-id');
         var ajaxurl = btn.attr('data-url');
         var data =  {nonce: nOnce, id: bID, action: 'check_order_status'};
-        console.log(data);
+        //console.log(data);
         JSON.stringify(data);
         $.ajax({
             type: "POST",

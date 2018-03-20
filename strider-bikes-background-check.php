@@ -61,6 +61,7 @@ class Strider_Bikes_Background_Check{
         add_action('gform_pre_submission_'.$this->_grav_id, array($this, 'sb_bg_pre_gravity_form'));
         add_action('gform_after_submission_5', array($this, 'sb_bg_check_make_order_grav_forms'));
         add_action('admin_enqueue_scripts', array($this, 'sb_bg_scripts'));
+        add_action('wp_enqueue_scripts', array($this, 'sb_bg_scripts'));
         add_action('show_user_profile', array($this, 'sb_bg_bool_profile'));
         add_action('edit_user_profile', array($this, 'sb_bg_bool_profile'));
         add_action('profile_update', array($this, 'sb_bg_update_value'),20,1);
