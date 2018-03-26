@@ -113,8 +113,9 @@
             async: false,
             data: data,
             success: function(re){
-                alert('background check status is : ' + JSON.stringify(re));
-                //console.log(re);
+                var order = JSON.stringify(re);
+                var alertMessage = order.replace(/,/g, ',\n');
+                alert('Your background check status is : ' + alertMessage);
             }
           });
           /*

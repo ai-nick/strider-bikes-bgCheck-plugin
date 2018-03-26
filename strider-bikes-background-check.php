@@ -19,9 +19,6 @@ if(! defined( 'STRIDER_BIKES_BGCHECK_ID_KEY' ) ) define('STRIDER_BIKES_BGCHECK_I
 if(! defined( 'STRIDER_BIKES_BGCHECK_ORDER_KEY' ) ) define('STRIDER_BIKES_BGCHECK_ORDER_KEY', 'sb_bg_check_canidate_order_id' );
 
 
-if ( !defined('ABSPATH')) {
-    exit;
-}
 
 
 class Strider_Bikes_Background_Check{
@@ -80,11 +77,7 @@ class Strider_Bikes_Background_Check{
     function sb_bg_hide_appropriate_nav_links($atts, $item, $args){
         if( $args->menu == 'primary' ){
             $id = $item->object_id;
-            $itemUnlocked = $this->lp_unlock_check_ze_page($id, 'sb_bg_lock_until_passed_check');
-            if (!$itemUnlocked){
-                $atts['style'] = 'display: none;';
-            }
-            $itemUnlocked = $this->lp_unlock_check_ze_page($id, 'sb_bg_lock_until_logged_in');
+            $itemUnlocked = $this->lp_unlock_check_ze_page($id);
             if (!$itemUnlocked){
                 $atts['style'] = 'display: none;';
             }
@@ -108,15 +101,7 @@ class Strider_Bikes_Background_Check{
                             'type'        => 'checkbox',
                             'description' => __('Do you want to block this page from user who havent passed a Background Check', 'sbbgCheck'),
                             'std'         => 0
-                        ),
-                        array(
-                            'name'        => 'Logged in Users Only',
-                            'id'          => "sb_bg_lock_until_logged_in",
-                            'type'        => 'checkbox',
-                            'description' => __('Do you want to block this page from user who are not Logged In', 'sbbgCheck'),
-                            'std'         => 0
                         )
-                    )
                 )
             )
         );
@@ -125,34 +110,24 @@ class Strider_Bikes_Background_Check{
     function restrict_until_complete_maybe(){
             global $wp_query;
             $pID = $wp_query->get_queried_object_id();
-            $unlocked = $this->lp_unlock_check_ze_page($pID, 'sb_bg_lock_until_logged_in');
-            if (!$unlocked){
-                wp_redirect(get_site_url());
-                exit;
-            }
-            $unlocked = $this->lp_unlock_check_ze_page($pID, 'sb_bg_lock_until_passed_check');
+            $unlocked = $this->lp_unlock_check_ze_page($pID);
             if (!$unlocked){
                 wp_redirect(get_site_url());
                 exit;
             }
         }
 
-    function lp_unlock_check_ze_page($cPageId, $metaKey){
+    function lp_unlock_check_ze_page($cPageId){
             $cUser = learn_press_get_current_user();
-            $lockVar = get_post_meta($cPageId, $metaKey, false)[0];
+            $lockVar = get_post_meta($cPageId, 'sb_bg_lock_until_passed_check', false)[0];
             $isUnlocked = true;
             if($lockVar<1){
                 return $isUnlocked;
             } else {
-                if($metaKey == 'sb_bg_lock_until_logged_in' && !$cUser->ID){
-                    return false;
-                }
-                if ($metaKey == 'sb_bg_lock_until_passed_check'){
-                    $uID = $cUser->ID;
-                    $bgStatus = get_user_meta($uID, 'user_bg_check_passed', false)[0];
-                    if ($bgStatus == 0){
-                        $isUnlocked = false;
-                    }
+                $uID = $cUser->ID;
+                $bgStatus = get_user_meta($uID, 'user_bg_check_passed', false)[0];
+                if ($bgStatus == 0){
+                    $isUnlocked = false;
                 }
             }
             return $isUnlocked;
