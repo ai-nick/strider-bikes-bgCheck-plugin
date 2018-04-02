@@ -115,7 +115,7 @@
             success: function(re){
                 var order = JSON.stringify(re);
                 var alertMessage = order.replace(/,/g, ',\n');
-                alert('Your background check status is : ' + alertMessage);
+                alert('The Candidates background check status is : ' + alertMessage);
             }
           });
           /*

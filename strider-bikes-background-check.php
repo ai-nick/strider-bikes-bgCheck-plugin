@@ -70,10 +70,11 @@ class Strider_Bikes_Background_Check{
         add_action('wp', array($this, 'restrict_until_complete_maybe'));
         add_action('wp', array($this, 'add_menu_filter'));
     }
-
+    // hooks into the menu settup proccess prior to rendering, allows us to restrict and remove pages
     function add_menu_filter(){
         add_filter('nav_menu_link_attributes', array($this,'sb_bg_hide_appropriate_nav_links'), 10, 3);
     }
+    // hides pages from users who have been locked out 
     function sb_bg_hide_appropriate_nav_links($atts, $item, $args){
         if( $args->menu == 'primary' ){
             $id = $item->object_id;
@@ -106,7 +107,8 @@ class Strider_Bikes_Background_Check{
             )
         );
         }
-
+    // calls function to check if page should be locked or not for the current user, if it should be it redirects the user to the wordpress
+    // site root url
     function restrict_until_complete_maybe(){
             global $wp_query;
             $pID = $wp_query->get_queried_object_id();
@@ -116,7 +118,8 @@ class Strider_Bikes_Background_Check{
                 exit;
             }
         }
-
+    // checks to see if A) the page is supposed to lock out users B) if the user has passed the bg check, if so it returns true, if
+    // not it returns false
     function lp_unlock_check_ze_page($cPageId){
             $cUser = learn_press_get_current_user();
             $lockVar = get_post_meta($cPageId, 'sb_bg_lock_until_passed_check', false)[0];
@@ -168,7 +171,7 @@ class Strider_Bikes_Background_Check{
         register_setting( 'sb-bg-check-settings-group', 'sb_bg_check_abg_admin_email' );
         register_setting( 'sb-bg-check-settings-group', 'sb_bg_check_abg_grav_ID' );
     }
-    
+    // lays out settings page
     function sb_bg_check_settings_page() {
     ?>
     <div class="wrap">
@@ -209,7 +212,7 @@ class Strider_Bikes_Background_Check{
     </form>
     </div>
     <?php } 
-
+    // function that controls the first conditional of our shortcode
     function sb_bg_check_status_shortcode(){
         $cUserID = get_current_user_id();
         if (!$cUserID){
@@ -229,7 +232,7 @@ class Strider_Bikes_Background_Check{
             return ob_get_clean();
         }
     }
-
+    // this call accurate bg api with the users ID then shows the candidates status in a js alert box
     function sb_bg_check_order_status(){
         $nonce = !empty( $_POST['nonce']) ? $_POST['nonce']: null;
         
@@ -257,9 +260,10 @@ class Strider_Bikes_Background_Check{
         $result = json_decode($result);
         wp_send_json($result);
         wp_die();
-        return '<h1>STATUS: '.$result->status.'</h1>';
+        return ;
     }
-
+    // use stored form data to call accurate background api to create the order, this is called from ajax after we send the 
+    // the response from creating a new candidate
     function sb_bg_check_make_order(){
         $bgID = $_POST['id'];
         $userID = get_current_user_id();
