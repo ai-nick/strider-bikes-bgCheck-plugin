@@ -309,18 +309,24 @@ class Strider_Bikes_Background_Check{
             die ( __('you have been DENIED', 'learnpress'));
         }
         $data = array(
-            'address' => $_POST['address'],
-            'city' => $_POST['city'],
-            'country' => $_POST['country'],
+            'address' => sanitize_text_field($_POST['address']),
+            'city' => sanitize_text_field($_POST['city']),
+            'country' => sanitize_text_field($_POST['country']),
             'dateOfBirth' => $_POST['dateOfBirth'],
-            'email' => $_POST['email'],
-            'firstName' => $_POST['firstName'],
-            'lastName' => $_POST['lastName'],
+            'email' => sanitize_email($_POST['email']),
+            'firstName' => sanitize_text_field($_POST['firstName']),
+            'lastName' => sanitize_text_field($_POST['lastName']),
             'phone' => $_POST['phone'],
-            'postalCode' => $_POST['postalCode'],
-            'region' => $_POST['region'],
+            'postalCode' => intval($_POST['postalCode']),
+            'region' => sanitize_text_field($_POST['region']),
             'ssn' => $_POST['ssn']
         );
+        if (strlen($data['postalCode']) != 5 || !$data['postalcode']){
+            $errorMsg = 'error invalid postal code';
+            json_encode($errorMsg);
+            wp_send_json($errorMsg);
+            wp_die();
+        }
         foreach($data as $key => $value){
             update_user_meta($userID, 'sb_bg_check_'.$key, $value);
         }
