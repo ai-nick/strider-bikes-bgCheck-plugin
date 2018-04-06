@@ -105,6 +105,7 @@ class Strider_Bikes_Background_Check{
                         )
                 )
             )
+        )
         );
         }
     // calls function to check if page should be locked or not for the current user, if it should be it redirects the user to the wordpress
@@ -122,13 +123,13 @@ class Strider_Bikes_Background_Check{
     // not it returns false
     function lp_unlock_check_ze_page($cPageId){
             $cUser = learn_press_get_current_user();
-            $lockVar = get_post_meta($cPageId, 'sb_bg_lock_until_passed_check', false)[0];
+            $lockVar = get_post_meta($cPageId, 'sb_bg_lock_until_passed_check', true);
             $isUnlocked = true;
             if($lockVar<1){
                 return $isUnlocked;
             } else {
                 $uID = $cUser->ID;
-                $bgStatus = get_user_meta($uID, 'user_bg_check_passed', false)[0];
+                $bgStatus = get_user_meta($uID, 'user_bg_check_passed', true);
                 if ($bgStatus == 0){
                     $isUnlocked = false;
                 }
@@ -218,10 +219,10 @@ class Strider_Bikes_Background_Check{
         if (!$cUserID){
             return;
         }
-        $userBGCheck = get_user_meta($cUserID, STRIDER_BIKES_BGCHECK_ORDER_KEY);
+        $userBGCheck = get_user_meta($cUserID, STRIDER_BIKES_BGCHECK_ORDER_KEY, true);
         $bgCheckPageURL = get_option('sb_bg_check_abg_api_baseurl');
         $out = '<div class="container-fluid">';
-        if (sizeof($userBGCheck[0])<1){
+        if (sizeof($userBGCheck)<1){
             $out .= '<p> You have not submitted your information for 
             a background check yet, please visit the <a href="'.$bgCheckPageURL.'"> background check page </a>to fill out and 
             submit the form </p>';

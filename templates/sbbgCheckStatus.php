@@ -8,7 +8,7 @@
  */
 
  defined('ABSPATH') || exit();
- header('Access-Control-Allow-Origin: *');
+
 
 
  $user = get_current_user_id();
