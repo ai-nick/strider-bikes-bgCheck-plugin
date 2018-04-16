@@ -219,7 +219,7 @@ class Strider_Bikes_Background_Check{
         if (!$cUserID){
             return;
         }
-        $userBGCheck = get_user_meta($cUserID, STRIDER_BIKES_BGCHECK_ORDER_KEY, true);
+        $userBGCheck = get_user_meta($cUserID, STRIDER_BIKES_BGCHECK_ORDER_KEY);
         $bgCheckPageURL = get_option('sb_bg_check_abg_api_baseurl');
         $out = '<div class="container-fluid">';
         if (sizeof($userBGCheck)<1){
@@ -333,7 +333,7 @@ class Strider_Bikes_Background_Check{
             wp_die();
         }
         foreach($data as $key => $value){
-            update_user_meta($userID, 'sb_bg_check_'.$key, $value);
+            update_user_meta($userID, 'sb_bg_check_'.$key, $this->fix_input($value));
         }
         $data_string = json_encode($data);
         $key = get_option('sb_bg_check_abg_api_key');
@@ -511,6 +511,14 @@ class Strider_Bikes_Background_Check{
         }
         return $value;
     }
+
+
+    function fix_input($data) {
+        $data = trim($data);
+        $data = stripslashes($data);
+        $data = htmlspecialchars($data);
+        return $data;
+      }
 
     function strider_bikes_add_user_bg_metaBool( $column ) {
         $column['bgCheckPassed'] = 'Background check status';
