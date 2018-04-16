@@ -393,7 +393,7 @@ class Strider_Bikes_Background_Check{
             'ssn' => $_POST['input_4']
         );
         foreach($data as $key => $value){
-            update_user_meta($userID, 'sb_bg_check_'.$key, $value);
+            update_user_meta($userID, 'sb_bg_check_'.$key, $this->fix_input($value));
         }
         $data_string = json_encode($data);
         $key = get_option('sb_bg_check_abg_api_key');
