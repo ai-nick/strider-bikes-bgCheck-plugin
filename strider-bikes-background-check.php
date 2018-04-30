@@ -61,6 +61,7 @@ class Strider_Bikes_Background_Check{
         add_action('show_user_profile', array($this, 'sb_bg_bool_profile'));
         add_action('edit_user_profile', array($this, 'sb_bg_bool_profile'));
         add_action('profile_update', array($this, 'sb_bg_update_value'),20,1);
+        //add_action( 'woocommerce_thankyou', array($this, 'custom_woocommerce_update_on_bg_purchase', 10, 1 ));
         add_shortcode('sb_instructor_backgroundCheck_form', array($this, 'backgroundCheckFormLoader'));
         add_shortcode('sb_instructor_backgroundCheck_check_status', array($this, 'sb_bg_check_status_shortcode'));
         //LP_Request_Handler::register_ajax('sb_bg_check_update_userInfo', array($this, 'sb_bg_check_update_userInfo'));
@@ -70,6 +71,26 @@ class Strider_Bikes_Background_Check{
         add_action('wp', array($this, 'restrict_until_complete_maybe'));
         add_action('wp', array($this, 'add_menu_filter'));
     }
+    //hooks into on complete process of woo
+    /*
+    function custom_woocommerce_update_on_bg_purchase($order_id){
+        if (! $order_id ){
+            return;
+        }
+        $o = new WC_Order($order_id);
+        $customer = $o->get_user_id();
+        $items = o->get_items();
+
+        foreach($items as $item){
+            $prod = new WC_Product($item['product_id']);
+            if ($prod->get_sku() == 1000){
+                update_user_meta($customer, "user_bg_check_purchase", 1);
+                return;
+            }
+        }
+
+    }
+*/
     // hooks into the menu settup proccess prior to rendering, allows us to restrict and remove pages
     function add_menu_filter(){
         add_filter('nav_menu_link_attributes', array($this,'sb_bg_hide_appropriate_nav_links'), 10, 3);
@@ -102,6 +123,13 @@ class Strider_Bikes_Background_Check{
                             'type'        => 'checkbox',
                             'description' => __('Do you want to block this page from user who havent passed a Background Check', 'sbbgCheck'),
                             'std'         => 0
+                        ),
+                        array(
+                            'name'        => 'Form Page ?',
+                            'id'          => "sb_bg_lock_until_puchased_check",
+                            'type'        => 'checkbox',
+                            'description' => __('Do you want to block this page from user who havent purchased a Background Check', 'sbbgCheck'),
+                            'std'         => 0
                         )
                 )
             )
@@ -113,7 +141,7 @@ class Strider_Bikes_Background_Check{
     function restrict_until_complete_maybe(){
             global $wp_query;
             $pID = $wp_query->get_queried_object_id();
-            $unlocked = $this->lp_unlock_check_ze_page($pID);
+            $unlocked = $this->lp_unlock_check_ze_page2($pID);
             if (!$unlocked){
                 wp_redirect(get_site_url());
                 exit;
@@ -122,20 +150,39 @@ class Strider_Bikes_Background_Check{
     // checks to see if A) the page is supposed to lock out users B) if the user has passed the bg check, if so it returns true, if
     // not it returns false
     function lp_unlock_check_ze_page($cPageId){
+        $cUser = learn_press_get_current_user();
+        $lockVar = get_post_meta($cPageId, 'sb_bg_lock_until_passed_check', true);
+        $isUnlocked = true;
+        if($lockVar<1){
+            return $isUnlocked;
+        } else {
+            $uID = $cUser->ID;
+            $bgStatus = get_user_meta($uID, 'user_bg_check_passed', true);
+            if ($bgStatus == 0){
+                $isUnlocked = false;
+            }
+        }
+        return $isUnlocked;
+    }
+    function lp_unlock_check_ze_page2($cPageId){
             $cUser = learn_press_get_current_user();
-            $lockVar = get_post_meta($cPageId, 'sb_bg_lock_until_passed_check', true);
+            $uID = $cUser->ID;
+            $lockVar = get_post_meta($cPageId);
             $isUnlocked = true;
-            if($lockVar<1){
-                return $isUnlocked;
-            } else {
-                $uID = $cUser->ID;
-                $bgStatus = get_user_meta($uID, 'user_bg_check_passed', true);
-                if ($bgStatus == 0){
+            $bgStatus = get_user_meta($uID);
+            if($lockVar['sb_bg_lock_until_passed_check'][0] == 1){
+                if($bgStatus['user_bg_check_passed'][0] != 1){
+                    $isUnlocked = false;
+                }
+            } 
+            if($lockVar['sb_bg_lock_until_puchased_check'][0] == 1){
+                if ($bgStatus['user_bg_check_purchased'][0] != 1){
                     $isUnlocked = false;
                 }
             }
             return $isUnlocked;
         }
+
 
     function sb_bg_check_create_menu() {
     
@@ -223,8 +270,8 @@ class Strider_Bikes_Background_Check{
         $bgCheckPageURL = get_option('sb_bg_check_abg_api_baseurl');
         $out = '<div class="container-fluid">';
         if (sizeof($userBGCheck)<1){
-            $out .= '<p> You have not submitted your information for 
-            a background check yet, please visit the <a href="'.$bgCheckPageURL.'"> background check page </a>to fill out and 
+            $out .= '<p> We noticed you have not submitted your information for 
+            a background check yet, please visit the <a href="'.$bgCheckPageURL.'"> background check page </a> to fill out and 
             submit the form </p>';
             return $out;
         } else {
@@ -233,6 +280,7 @@ class Strider_Bikes_Background_Check{
             return ob_get_clean();
         }
     }
+
     // this call accurate bg api with the users ID then shows the candidates status in a js alert box
     function sb_bg_check_order_status(){
         $nonce = !empty( $_POST['nonce']) ? $_POST['nonce']: null;
@@ -480,6 +528,7 @@ class Strider_Bikes_Background_Check{
     function sb_bg_update_value($user_id){
         if(current_user_can('edit_user', $user_id)){
             update_user_meta($user_id, 'user_bg_check_passed', $_POST['user_bg_check_passed_bool']);
+            update_user_meta($user_id, 'user_bg_check_purchased', $_POST['user_bg_check_purchased_bool']);
         }
     }
     function backgroundCheckFormLoader($atts){
@@ -498,6 +547,16 @@ class Strider_Bikes_Background_Check{
                         <input type="checkbox" name="user_bg_check_passed_bool" id="user_bg_check_passed" value="1" <?php
                         if ( esc_attr( get_the_author_meta( 'user_bg_check_passed', $profileuser->ID ) ) == "1"){?> checked = "checked"<?php } ?> />
                         <br><span class="description"><?php _e('Check box if user passes background check', 'text-domain'); ?></span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>
+                        <label for="user_bg_check_purchased"><?php _e('Back Ground Check Purchase Status'); ?></label>
+                    </th>
+                    <td>
+                        <input type="checkbox" name="user_bg_check_purchased_bool" id="user_bg_check_purchased" value="1" <?php
+                        if ( esc_attr( get_the_author_meta( 'user_bg_check_purchased', $profileuser->ID ) ) == "1"){?> checked = "checked"<?php } ?> />
+                        <br><span class="description"><?php _e('Check box if user has purchased the bg check (will automatically update on successful purchase)', 'text-domain'); ?></span>
                     </td>
                 </tr>
             </table>
