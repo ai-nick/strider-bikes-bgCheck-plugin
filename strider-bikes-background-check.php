@@ -61,7 +61,7 @@ class Strider_Bikes_Background_Check{
         add_action('show_user_profile', array($this, 'sb_bg_bool_profile'));
         add_action('edit_user_profile', array($this, 'sb_bg_bool_profile'));
         add_action('profile_update', array($this, 'sb_bg_update_value'),20,1);
-        //add_action( 'woocommerce_thankyou', array($this, 'custom_woocommerce_update_on_bg_purchase', 10, 1 ));
+        add_action( 'after_woocommerce_pay', array($this, 'custom_woocommerce_update_on_bg_purchase', 10, 1 ));
         add_shortcode('sb_instructor_backgroundCheck_form', array($this, 'backgroundCheckFormLoader'));
         add_shortcode('sb_instructor_backgroundCheck_check_status', array($this, 'sb_bg_check_status_shortcode'));
         //LP_Request_Handler::register_ajax('sb_bg_check_update_userInfo', array($this, 'sb_bg_check_update_userInfo'));
@@ -72,25 +72,25 @@ class Strider_Bikes_Background_Check{
         add_action('wp', array($this, 'add_menu_filter'));
     }
     //hooks into on complete process of woo
-    /*
+
     function custom_woocommerce_update_on_bg_purchase($order_id){
         if (! $order_id ){
             return;
         }
         $o = new WC_Order($order_id);
         $customer = $o->get_user_id();
-        $items = o->get_items();
-
+        $items = $o->get_items();
+        echo $items[0];
         foreach($items as $item){
             $prod = new WC_Product($item['product_id']);
-            if ($prod->get_sku() == 1000){
-                update_user_meta($customer, "user_bg_check_purchase", 1);
+            if ($prod->get_sku() == '1000'){
+                update_user_meta($customer, "user_bg_check_purchased", 1);
                 return;
             }
         }
 
     }
-*/
+
     // hooks into the menu settup proccess prior to rendering, allows us to restrict and remove pages
     function add_menu_filter(){
         add_filter('nav_menu_link_attributes', array($this,'sb_bg_hide_appropriate_nav_links'), 10, 3);
