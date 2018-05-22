@@ -75,10 +75,10 @@ class Strider_Bikes_Background_Check{
 
     function custom_woocommerce_update_on_bg_purchase($order_id){
         if (! $order_id ){
-            echo 'no order id';
+            //echo 'no order id';
             return;
         }
-        echo 'hit the hook';
+        //echo 'hit the hook';
         $o = new WC_Order($order_id);
         $customer = $o->get_user_id();
         $items = $o->get_items();
@@ -169,15 +169,15 @@ class Strider_Bikes_Background_Check{
     function lp_unlock_check_ze_page2($cPageId){
             $cUser = learn_press_get_current_user();
             $uID = $cUser->ID;
-            $lockVar = get_post_meta($cPageId);
+            $lockVar = get_post_meta($cPageId, 'sb_bg_lock_until_passed_check', true);
             $isUnlocked = true;
             $bgStatus = get_user_meta($uID);
-            if($lockVar['sb_bg_lock_until_passed_check'][0] == 1){
+            if($lockVar == 1){
                 if($bgStatus['user_bg_check_passed'][0] != 1){
                     $isUnlocked = false;
                 }
             } 
-            if($lockVar['sb_bg_lock_until_puchased_check'][0] == 1){
+            if($lockVar == 1){
                 if ($bgStatus['user_bg_check_purchased'][0] != 1){
                     $isUnlocked = false;
                 }
